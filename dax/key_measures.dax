@@ -1,0 +1,44 @@
+// Key DAX measures — Jordan Labour Market Dashboard
+// Table: Fact_LabourForce (Governorate, Sex, Marital, AgeGroup, Education, Year, Employed, Unemployed, LabourForce)
+
+// ---------- Core ----------
+Unemployment Rate =
+DIVIDE ( SUM ( Fact_LabourForce[Unemployed] ), SUM ( Fact_LabourForce[LabourForce] ) )
+
+Selected Year = MAX ( Fact_LabourForce[Year] )
+
+Rate Latest =
+VAR y = MAX ( Fact_LabourForce[Year] )
+RETURN CALCULATE ( [Unemployment Rate], Fact_LabourForce[Year] = y )
+
+Rate 2019 =
+CALCULATE ( [Unemployment Rate], Fact_LabourForce[Year] = 2019 )
+
+National Rate Latest =
+VAR y = MAX ( Fact_LabourForce[Year] )
+RETURN CALCULATE ( [Unemployment Rate], REMOVEFILTERS ( Fact_LabourForce ), Fact_LabourForce[Year] = y )
+
+Change Latest vs 2019 pp = ( [Rate Latest] - [Rate 2019] ) * 100
+
+// ---------- Groups ----------
+Female Graduates Rate =
+CALCULATE ( [Rate Latest], Fact_LabourForce[Sex] = "أنثى", Fact_LabourForce[Education] = "بكالوريوس فأعلى" )
+
+Male Graduates Rate =
+CALCULATE ( [Rate Latest], Fact_LabourForce[Sex] = "ذكر", Fact_LabourForce[Education] = "بكالوريوس فأعلى" )
+
+Teen Rate = CALCULATE ( [Rate Latest], Fact_LabourForce[AgeGroup] = "15-19" )
+
+Recovered Count =
+COUNTROWS ( FILTER ( ALLSELECTED ( Fact_LabourForce[Governorate] ), [Rate Latest] <= [Rate 2019] ) ) + 0
+
+Top Gov Name =
+MAXX ( TOPN ( 1, ALLSELECTED ( Fact_LabourForce[Governorate] ), [Rate Latest], DESC ), Fact_LabourForce[Governorate] )
+
+Recovery Status =
+IF ( [Rate Latest] <= [Rate 2019], "✔ عاد لمستوى ما قبل كورونا", "✖ لم يتعافَ بعد" )
+
+// ---------- Dynamic titles (update with the Year slicer) ----------
+Title Gender Edu = "معدل البطالة حسب المستوى التعليمي والجنس | " & [Selected Year]
+Title Age        = "معدل البطالة حسب الفئة العمرية | " & [Selected Year]
+Title Gov Latest = "أحدث معدل البطالة حسب المحافظة | " & [Selected Year]
